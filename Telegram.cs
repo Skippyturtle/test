@@ -1,12 +1,10 @@
-﻿using DataVortex;
-using TL;
+﻿using TL;
 using WTelegram;
 
 public class Telegram
 {
     public static async Task TelegramDownload(string downloadPath)
     {
-
         Client client = null;
         try
         {
@@ -16,7 +14,7 @@ public class Telegram
             var dialogs = await client.Messages_GetAllDialogs();
             var channelMap = new Dictionary<int, ChatBase>(); // Map pour stocker les canaux par numéro
 
-            LogMessage("Canaux auxquels le compte est abonné :");
+            Console.WriteLine("Canaux auxquels le compte est abonné :");
             int channelNumber = 1;
 
             foreach (Dialog dialog in dialogs.dialogs)
@@ -24,7 +22,7 @@ public class Telegram
                 var chat = dialogs.UserOrChat(dialog) as ChatBase;
                 if (chat is Channel channel && chat.IsActive)
                 {
-                    LogMessage($"{channelNumber}. {chat}");
+                    Console.WriteLine($"{channelNumber}. {chat}");
                     channelMap[channelNumber] = channel;
                     channelNumber++;
                 }
@@ -33,6 +31,9 @@ public class Telegram
             // Suivez tous les canaux
             foreach (var channelEntry in channelMap)
             {
+                var selectedChannel = channelEntry.Value;
+                Console.WriteLine($"Vous suivez maintenant : {selectedChannel}");
+
                 // Gérez les mises à jour en utilisant OnUpdate
                 client.OnUpdate += async (updates) =>
                 {
@@ -43,11 +44,8 @@ public class Telegram
                             var message = newMessage.message as Message;
                             if (message != null && channelMap.Values.Any(channel => message.peer_id.ID == channel.ID))
                             {
-                                Console.Clear();
-                                Console.ForegroundColor = ConsoleColor.Green;
-                                LogMessage($"+++++++++++++ Nouveau message reçu de {channelMap.Values.First(channel => message.peer_id.ID == channel.ID)} +++++++++++++");
-                                Console.ResetColor();
-
+                                Console.WriteLine($"Nouveau message reçu du canal : {channelMap.Values.First(channel => message.peer_id.ID == channel.ID)}");
+                                Console.WriteLine($"{message.from_id}> {message.message} {message.media}");
 
                                 // Vérifiez si le message contient une pièce jointe et téléchargez-la si nécessaire
                                 if (message.media is MessageMediaDocument documentMedia)
@@ -61,6 +59,7 @@ public class Telegram
                                         {
                                             var fileNameAttribute = document.attributes.OfType<DocumentAttributeFilename>().FirstOrDefault();
                                             var fileName = fileNameAttribute != null ? fileNameAttribute.file_name : "downloaded";
+
                                             // Créez un objet InputDocumentFileLocation
                                             var fileLocation = new InputDocumentFileLocation
                                             {
@@ -71,50 +70,25 @@ public class Telegram
                                             };
 
                                             // Définissez le chemin du fichier local où le fichier sera téléchargé
-
-                                            var localFilePath = downloadPath + fileName;
-                                            Console.WriteLine();
-                                            Console.SetCursorPosition(0, 1);
-                                            Console.Write("Fichier compatible : ");
-                                            Console.ForegroundColor = ConsoleColor.Blue;
-                                            Console.Write(fileName);
-                                            Console.ResetColor();
-
-                                            // Commencez à surveiller la vitesse de téléchargement
-                                            Network.StartMonitoring(document.size); // Ajouté
+                                            var localFilePath = Path.Combine(downloadPath, fileName);
 
                                             // Téléchargez le fichier
                                             using (var outputStream = System.IO.File.OpenWrite(localFilePath))
-                                            { 
+                                            {
                                                 await client.DownloadFileAsync(fileLocation, outputStream);
                                             }
 
-                                            Network.StopMonitoring();
-
-                                            //Appelez DBExplorer pour traiter le fichier
-                                            ClearConsole();
-                                            Thread.Sleep(3000);
-                                            DBExplorer.DBExplorer.Run(localFilePath, fileName);
+                                            // Appelez DBExplorer pour traiter le fichier et attendre 3 secondes pour éviter System.IO.IOException
+                                            await Task.Delay(3000);
+                                            DBExplorer.DBExplorer.Run(downloadPath, fileName);
                                         }
                                         else
                                         {
                                             Console.ForegroundColor = ConsoleColor.Red;
-                                            LogMessage("Le fichier n'est pas un .zip ou .rar et ne sera pas téléchargé.");
+                                            Console.WriteLine("Le fichier n'est pas un .zip ou .rar et ne sera pas téléchargé.");
                                             Console.ResetColor();
                                         }
                                     }
-                                    else
-                                    {
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        Console.WriteLine("Le fichier n'est pas un document et ne sera pas téléchargé.");
-                                        Console.ResetColor();
-                                    }
-                                }
-                                else
-                                {
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    Console.WriteLine("Le fichier n'est pas un document et ne sera pas téléchargé.");
-                                    Console.ResetColor();
                                 }
                             }
                         }
@@ -122,11 +96,8 @@ public class Telegram
                 };
 
                 Console.ForegroundColor = ConsoleColor.Red;
-                LogMessage("Appuyez sur une touche pour arrêter le programme.");
+                Console.WriteLine("Appuyez sur une touche pour arrêter le programme.");
                 Console.ResetColor();
-
-                Thread.Sleep(3000);
-                DBExplorer.DBExplorer.Startconsole();
 
                 while (!Console.KeyAvailable)
                 {
@@ -143,6 +114,13 @@ public class Telegram
                 client.Dispose();
         }
     }
+
+        public static void LogMessage(string message)
+    {
+        Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
+        Console.WriteLine(message);
+        Console.ResetColor();
+    }
     public static void ClearConsole()
     {
         Console.Clear();  // Attempt to clear the console
@@ -155,12 +133,6 @@ public class Telegram
 
         // Set the cursor position to the top-left corner
         Console.SetCursorPosition(0, 0);
-    }
-    public static void LogMessage(string message)
-    {
-        Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
-        Console.WriteLine(message);
-        Console.ResetColor();
     }
     static string Config(string what)
     {
