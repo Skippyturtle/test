@@ -20,16 +20,24 @@ class Program
 
     private static string GetDownloadPath()
     {
-        Console.Write("Entrez le chemin de téléchargement : ");
-        string downloadPath = Console.ReadLine();
+        string configFilePath = "config.json";
 
-        if (string.IsNullOrEmpty(downloadPath))
+        if (File.Exists(configFilePath))
         {
-            Console.WriteLine("Le chemin de téléchargement ne peut pas être vide. Utilisation du chemin par défaut.");
-            downloadPath = @"D:\Téléchargements\Telegram Desktop";
+            // Si le fichier existe, lisez le chemin depuis le fichier
+            return File.ReadAllText(configFilePath).Trim();
         }
+        else
+        {
+            Telegram.LogMessage("Entrez le chemin de téléchargement : ");
+            string downloadPath = Console.ReadLine();
 
-        return downloadPath;
+
+            // Sauvegardez le chemin dans le fichier config.json
+            File.WriteAllText(configFilePath, downloadPath);
+
+            return downloadPath;
+        }
     }
 
     // Gestionnaire d'exceptions global
@@ -45,7 +53,7 @@ class Program
             File.AppendAllText("errors.txt", errorText, Encoding.UTF8);
 
             // Affichez l'erreur dans la console (facultatif)
-            Console.WriteLine("Une erreur s'est produite. Veuillez consulter le fichier errors.txt pour plus de détails.");
+            Telegram.LogMessage("Une erreur s'est produite. Veuillez consulter le fichier errors.txt pour plus de détails.");
         }
     }
     public static class GlobalExceptionHandler
