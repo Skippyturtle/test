@@ -12,7 +12,7 @@ namespace DBExplorer
     {
         private static DateTime startTime;
 
-        public static void Run(string localFilePath, string fileName)
+        public static void Run(string localFilePath)
         {
             DataVortex.Checker.RemoveDuplicateLines("verified_accounts.json");
             PrintBanner();
@@ -95,7 +95,7 @@ namespace DBExplorer
                 }
 
                 Console.ForegroundColor = ConsoleColor.Red;
-                Telegram.LogMessage($"Fin de l'archive {fileName}, suppression en cours...");
+                Telegram.LogMessage($"Fin de l'archive {archiveName}, suppression en cours...");
                 File.Delete(localFilePath);
                 Console.ResetColor();
                 while (File.Exists(localFilePath))

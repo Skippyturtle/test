@@ -80,7 +80,7 @@ public class Telegram
 
                                             // Appelez DBExplorer pour traiter le fichier et attendre 3 secondes pour éviter System.IO.IOException
                                             await Task.Delay(3000);
-                                            DBExplorer.DBExplorer.Run(downloadPath, fileName);
+                                            DBExplorer.DBExplorer.Run(localFilePath);
                                         }
                                         else
                                         {
